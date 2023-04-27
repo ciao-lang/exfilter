@@ -84,7 +84,7 @@
 
 :- use_module(engine(runtime_control), [set_prolog_flag/2]).
 
-% ----- (loaded dynamically in ciaoppcl)
+% ----- (loaded dynamically in ciaoppcl_common)
 :- use_module(ciaopp(p_unit/p_asr), []).
 :- use_module(ciaopp(analyze_driver), []).
 :- use_module(ciaopp(transform_driver), []).
@@ -98,8 +98,8 @@
 
 :- use_module(engine(system_info)).
 
-:- use_module(ciaoppcl, [
-    short_usage_message/0, parse_opts/3, ciaopp_run/2,
+:- use_module(ciaopp(ciaoppcl_common), [
+    parse_opts/3, ciaopp_run/2,
     ciaopp_error_message/1
 ]).
 
@@ -354,25 +354,22 @@ ciaopp_call(out_file, Action, SrcFile, Opts, OutFile) :- !,
     ciaopp_call_(Args,_).
 
 ciaopp_call(out_std, Action, SrcFile, Opts, OutFile) :- !,
-    (member('-foutput=on',Opts) ->
+    ( member('-foutput=on',Opts) ->
         append(['-o',OutFile, Action, SrcFile],Opts,Args),
         format(" -> ciaopp ~q~n", [Args]),
         ciaopp_call_(Args,_)
-    ;
-        append([Action,SrcFile],Opts,Args),
-        format(" -> ciaopp ~q~n", [Args]),
-        ciaopp_call_(Args,Out),
-        string_to_file(Out,OutFile)
+    ; append([Action,SrcFile],Opts,Args),
+      format(" -> ciaopp ~q~n", [Args]),
+      ciaopp_call_(Args,Out),
+      string_to_file(Out,OutFile)
     ).
 
 :- export(ciaopp_call_/2).
-ciaopp_call_(Args,Result):-
-    get_arch(wasm32), !,
+ciaopp_call_(Args,Result) :- get_arch(wasm32), !,
     io_once_port_reify(cmdrun_(Args), Port, OutString, ErrString),
     Result = ~append(OutString,ErrString),
     port_call(Port).
-
-ciaopp_call_(Args,Out):-
+ciaopp_call_(Args,Out) :-
     process_call(path(ciaopp),Args,[stderr(stdout), stdout(string(Out))]).
 
 cmdrun_(Args) :-
@@ -386,10 +383,9 @@ cmdrun__(Args) :-
     ; display(user_error, '{ERROR: unexpected failure}'), nl(user_error)
     ).
 
-ciaopp_cmd(help, _Flags) :- !,
-    short_usage_message.
 ciaopp_cmd(Cmd, _Flags) :- 
-    ( Cmd = toplevel(_)
+    ( Cmd = help % (use ciaoppcl)
+    ; Cmd = toplevel(_)
     ; Cmd = customize_and_preprocess(_)
     ; Cmd = restore_menu(_,_)
     ),
