@@ -668,7 +668,7 @@ warn(Zs) --> warn_(Ys),!, warn(Xs), {append(Ys,Xs,Zs)}.
 warn(Xs) --> [_], warn(Xs).
 
 warn_(As) --> "WARNING", warnkeep(Xs), 
-    { append("WARNING",Xs,XXs), append(XXs,"\n\n",As) }.
+    { append("WARNING",Xs,XXs), strip_blanks(XXs, Ys), append(Ys,"\n\n",As) }.
 
 warnkeep([]) --> "}", !.
 warnkeep([X|Xs]) --> [X], {X \= 0'} }, warnkeep(Xs).
@@ -683,7 +683,7 @@ err(Zs) --> err_(Ys),!, err(Xs), {append(Ys,Xs,Zs)}.
 err(Xs) --> [_], err(Xs).
 
 err_(As) --> "ERROR", errkeep(Xs), 
-    { append("ERROR",Xs,XXs), append(XXs,"\n\n",As) }.
+    { append("ERROR",Xs,XXs), strip_blanks(XXs, Ys), append(Ys,"\n\n",As) }.
 
 errkeep([]) --> "}", !.
 errkeep([X|Xs]) --> [X], {X \= 0'} }, errkeep(Xs).
@@ -879,6 +879,19 @@ extract_tpred_name([L|Rest],Name,[Pred|Xs]):-
     ).
 extract_tpred_name([],_,[[]]).
 
+% Strip left and right blanks and newlines from a string
+strip_blanks(Str0, Str) :-
+    reverse(Str0, Str1),
+    strip_lblanks(Str1, Str2),
+    reverse(Str2, Str).
+
+strip_lblanks([], []).
+strip_lblanks([C|Cs], Ds) :- blank(C), !, strip_lblanks(Cs, Ds).
+strip_lblanks(Cs, Cs).
+    
+blank(0' ).
+blank(0'\n).
+blank(0'\t).
 % ---------------------------------------------------------------------------
 % none: no output
 
