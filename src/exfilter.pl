@@ -598,9 +598,12 @@ tpred(Xs) --> [_], tpred(Xs).
 
 truepred(Ys) --> ":- true pred ", tpkeep(Xs), {append(":- true pred ",Xs,XXs),  append(XXs,"\n\n",Ys)}.
 
-
-tpkeep(".") -->  ".", !. 
+tpkeep(".") --> ".", eol, !.
+tpkeep([Y, X|Xs]) -->  [Y], {Y == 0'. }, [X], {X \= 0'., X \= eol }, tpkeep(Xs).
 tpkeep([X|Xs]) -->  [X], {X \= 0'. }, tpkeep(Xs).
+
+eol        --> [0'
+].  
 
 % ---------------------------------------------------------------------------
 % 'tpred_plus': all "true pred" assertions including comp properties
@@ -865,9 +868,9 @@ extract_assertions_include([L|Rest], Include, [X|Xs]):-
         extract_assertions_include(Rest, Include, Xs)        
     ).
 extract_assertions_include([], _, [[]]).
-        
+
 read_assertions([L|Rest], [X|Xs]) :-
-    ( L = 46 ->
+    ( char_dot(L), Rest = [L1|Rest1], blank(L1)  ->
         X = [L],
         Rest = [_LF|Rest1],
         read_assertions(Rest1,Xs)
@@ -877,8 +880,8 @@ read_assertions([L|Rest], [X|Xs]) :-
 read_assertions([], [[]]).
 
 read_messages([L|Rest], [X|Xs]) :-
-    ( L = 10 , Rest = [10|Rest1] ->
-        X = [L,L],
+    ( blank(L), Rest = [L1|Rest1], blank(L1) ->
+        X = [L,L1],
         read_messages(Rest1,Xs)
     ; X = [L|Xs0],
       read_messages(Rest, [Xs0|Xs])
@@ -896,6 +899,8 @@ extract_tpred_name([L|Rest],Name,[Pred|Xs]):-
         extract_tpred_name(Rest,Name,Xs)
     ).
 extract_tpred_name([],_,[[]]).
+
+char_dot(0'.).
 
 % Strip left and right blanks and newlines from a string
 strip_blanks(Str0, Str) :-
