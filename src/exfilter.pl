@@ -37,6 +37,7 @@
 %  - \bf{error} :: all ERRORs.
 %  - \bf{check_pred} :: all check assertions.
 %  - \bf{warn_error} :: all WARNINGs and all ERRORs.
+%  - \bf{all_message} :: all top-level messages
 %  - \bf{test} :: all tests.
 %
 %  ##  More options
@@ -691,6 +692,23 @@ errkeep([X|Xs]) --> [X], {X \= 0'} }, errkeep(Xs).
 % ---------------------------------------------------------------------------
 % 'warn_error' : all ERRORs and all WARNINGs
 run_filter(warn_error, none, Include, off, none, InStr, OutStr) :- !, run_filter(warnings, none, none, off, none, InStr, OutStr3), run_filter(errors, none, none, off, none, InStr, OutStr2), append(OutStr3,OutStr2,OutStr1), message_include(Include, OutStr1, OutStr).
+
+% ---------------------------------------------------------------------------
+% 'all_message' : all top-level messages including WARNINGs, ERRORs...
+
+run_filter(all_message, none, Include, off, none, InStr, OutStr) :- !, run_filter(warnings, none, none, off, none, InStr, OutStr1), run_filter(errors, none, none, off, none, InStr, OutStr2), append(OutStr1,OutStr2,OutStr3), run_filter(notes, none, none, off, none, InStr, OutStr4),  append(OutStr3,OutStr4,OutStr5), message_include(Include, OutStr5, OutStr).
+
+run_filter(notes, none, none, off, none, InStr, OutStr) :- !, note(OutStr, InStr, []).
+
+note([]) --> \+ [_], !. %To match EOS
+note(Zs) --> note_(Ys),!, note(Xs), {append(Ys,Xs,Zs)}.
+note(Xs) --> [_], note(Xs).
+
+note_(As) --> "NOTE", notekeep(Xs), 
+    { append("NOTE",Xs,XXs), strip_blanks(XXs, Ys), append(Ys,"\n\n",As) }.
+
+notekeep([]) --> "}", !.
+notekeep([X|Xs]) --> [X], {X \= 0'} }, notekeep(Xs).
 
 % ---------------------------------------------------------------------------
 % check_pred: all check assertions
