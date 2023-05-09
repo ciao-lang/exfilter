@@ -185,7 +185,6 @@ splitline_([0' |Cs], [], Cs) :- !.
 splitline_([C|Cs], [C|Ds], Cs2) :-
     splitline_(Cs, Ds, Cs2).
 
-   
 run1(ResultPath) :-
     decode_params(ResultPath, File, Action, Opts, Filter, NameFilter, Include, Comments, AbstDomain, _, _),
     path_concat('code', File, SrcFile0),
@@ -608,8 +607,7 @@ eol        --> [0'
 % ---------------------------------------------------------------------------
 % 'tpred_plus': all "true pred" assertions including comp properties
 
-run_filter(tpred_plus, Name, Include, off, AbstDomain, InStr, OutStr) :- !, tpredp(OutStr3, InStr, []),
-    tpred_name(Name,OutStr3,OutStr2), tpred_include(Include, OutStr2, OutStr1), tpred_AD(AbstDomain, OutStr1, OutStr).
+run_filter(tpred_plus, Name, Include, off, AbstDomain, InStr, OutStr) :- !, tpredp(OutStr3, InStr, []), tpred_name(Name,OutStr3,OutStr2), tpred_include(Include, OutStr2, OutStr1), tpred_AD(AbstDomain, OutStr1, OutStr).
 
 
 tpredp([]) --> \+ [_], !. %To match EOS
@@ -648,7 +646,6 @@ regtype__([]) --> \+ [_], !. %To match EOS
 regtype__(Zs) --> rtpred(Xs), !, tpredreg(Rs), {append(Xs,Rs,Zs)} .
 regtype__(Xs) --> [_], regtype_(Xs).
 
-
 % ---------------------------------------------------------------------------
 % 'regtype': only all regtypes
 
@@ -665,52 +662,58 @@ regtype_(Xs) --> [_], regtype_(Xs).
 % ---------------------------------------------------------------------------
 % warnings: all WARNINGs
 
-run_filter(warnings, none, none, off, none, InStr, OutStr) :- !, warn(OutStr, InStr, []).
+run_filter(warnings, none, Include, off, none, InStr, OutStr) :- !, warn(OutStr1, InStr, []), message_include(Include, OutStr1, OutStrPar), strip_closepar(OutStrPar, OutStr).
 
 warn([]) --> \+ [_], !. % To match EOS % TODO: ???
 warn(Zs) --> warn_(Ys),!, warn(Xs), {append(Ys,Xs,Zs)}.
 warn(Xs) --> [_], warn(Xs).
 
 warn_(As) --> "WARNING", warnkeep(Xs), 
-    { append("WARNING",Xs,XXs), strip_blanks(XXs, Ys), append(Ys,"\n\n",As) }.
+    { append("WARNING",Xs,XXs), strip_blanks(XXs, Zs), append(Zs,"\n\n",As) }.
 
-warnkeep([]) --> "}", !.
+warnkeep("}") --> eol, eol, "}", !.
+warnkeep("}") --> eol, "}", !.
+warnkeep("}") --> "}", !.
 warnkeep([X|Xs]) --> [X], {X \= 0'} }, warnkeep(Xs).
 
 % ---------------------------------------------------------------------------
 % errors: all ERRORs
 
-run_filter(errors, none, none, off, none, InStr, OutStr) :- !, err(OutStr, InStr, []).
+run_filter(errors, none, Include, off, none, InStr, OutStr) :- !, err(OutStr1, InStr, []), message_include(Include, OutStr1, OutStrPar), strip_closepar(OutStrPar, OutStr).
 
 err([]) --> \+ [_], !. %To match EOS
 err(Zs) --> err_(Ys),!, err(Xs), {append(Ys,Xs,Zs)}.
 err(Xs) --> [_], err(Xs).
 
 err_(As) --> "ERROR", errkeep(Xs), 
-    { append("ERROR",Xs,XXs), strip_blanks(XXs, Ys), append(Ys,"\n\n",As) }.
+    { append("ERROR",Xs,XXs), strip_blanks(XXs, Zs), append(Zs,"\n\n",As) }.
 
-errkeep([]) --> "}", !.
+errkeep("}") --> eol, eol, "}", !.
+errkeep("}") --> eol, "}", !.
+errkeep("}") --> "}", !.
 errkeep([X|Xs]) --> [X], {X \= 0'} }, errkeep(Xs).
 
 % ---------------------------------------------------------------------------
 % 'warn_error' : all ERRORs and all WARNINGs
-run_filter(warn_error, none, Include, off, none, InStr, OutStr) :- !, run_filter(warnings, none, none, off, none, InStr, OutStr3), run_filter(errors, none, none, off, none, InStr, OutStr2), append(OutStr3,OutStr2,OutStr1), message_include(Include, OutStr1, OutStr).
+run_filter(warn_error, none, Include, off, none, InStr, OutStr) :- !, run_filter(warnings, none, Include, off, none, InStr, OutStr3), run_filter(errors, none, Include, off, none, InStr, OutStr2), append(OutStr3,OutStr2,OutStr).
 
 % ---------------------------------------------------------------------------
 % 'all_message' : all top-level messages including WARNINGs, ERRORs...
 
-run_filter(all_message, none, Include, off, none, InStr, OutStr) :- !, run_filter(warnings, none, none, off, none, InStr, OutStr1), run_filter(errors, none, none, off, none, InStr, OutStr2), append(OutStr1,OutStr2,OutStr3), run_filter(notes, none, none, off, none, InStr, OutStr4),  append(OutStr3,OutStr4,OutStr5), message_include(Include, OutStr5, OutStr).
+run_filter(all_message, none, Include, off, none, InStr, OutStr) :- !, run_filter(warnings, none, Include, off, none, InStr, OutStr1), run_filter(errors, none, Include, off, none, InStr, OutStr2), append(OutStr1,OutStr2,OutStr3), run_filter(notes, none, Include, off, none, InStr, OutStr4),  append(OutStr3,OutStr4,OutStr).
 
-run_filter(notes, none, none, off, none, InStr, OutStr) :- !, note(OutStr, InStr, []).
+run_filter(notes, none, Include, off, none, InStr, OutStr) :- !, note(OutStr1, InStr, []),  message_include(Include, OutStr1, OutStrPar), strip_closepar(OutStrPar, OutStr).
 
 note([]) --> \+ [_], !. %To match EOS
 note(Zs) --> note_(Ys),!, note(Xs), {append(Ys,Xs,Zs)}.
 note(Xs) --> [_], note(Xs).
 
 note_(As) --> "NOTE", notekeep(Xs), 
-    { append("NOTE",Xs,XXs), strip_blanks(XXs, Ys), append(Ys,"\n\n",As) }.
+    { append("NOTE",Xs,XXs), strip_blanks(XXs, Zs), append(Zs,"\n\n",As) }.
 
-notekeep([]) --> "}", !.
+notekeep("}") --> eol, eol, "}", !.
+notekeep("}") --> eol, "}", !.
+notekeep("}") --> "}", !.
 notekeep([X|Xs]) --> [X], {X \= 0'} }, notekeep(Xs).
 
 % ---------------------------------------------------------------------------
@@ -795,7 +798,6 @@ tpred_AD(AD, OutStr1, OutStr):-
                 
         ).
 
-
 tpred_AD_(OutStr1, List, OutStr):-
     read_assertions(OutStr1,Xs),
     extract_all_assertions_AD(Xs, List, Xs0),
@@ -845,7 +847,7 @@ extract_all_assertions_AD([], _, [[]]).
 extract_assertions_AD(L, [X|Rest], Result) :-
     append(".*", X, X0),
     (match_posix_rest(X0, L , _) ->
-        append(L,[10],Result)      
+        Result = L
     ;
         extract_assertions_AD(L, Rest, Result)
     ).
@@ -861,7 +863,7 @@ extract_all_assertions_include(L, [X], Result):-
 extract_assertions_include([L|Rest], Include, [X|Xs]):-
     append(".*", Include , Include0),
     (match_posix_rest(Include0, L , _) ->
-        append(L,[10],X),
+        X = L,
         extract_assertions_include(Rest, Include, Xs)
     ;
         X = [],
@@ -871,7 +873,7 @@ extract_assertions_include([], _, [[]]).
 
 read_assertions([L|Rest], [X|Xs]) :-
     ( char_dot(L), Rest = [L1|Rest1], blank(L1)  ->
-        X = [L],
+        X = [L,L1],
         Rest = [_LF|Rest1],
         read_assertions(Rest1,Xs)
     ; X = [L|Xs0],
@@ -880,19 +882,18 @@ read_assertions([L|Rest], [X|Xs]) :-
 read_assertions([], [[]]).
 
 read_messages([L|Rest], [X|Xs]) :-
-    ( blank(L), Rest = [L1|Rest1], blank(L1) ->
-        X = [L,L1],
-        read_messages(Rest1,Xs)
+    ( closepar(L) ->
+        X = [L],
+        read_messages(Rest,Xs)
     ; X = [L|Xs0],
       read_messages(Rest, [Xs0|Xs])
     ).
 read_messages([], [[]]).
 
-
 extract_tpred_name([L|Rest],Name,[Pred|Xs]):-
       append(".*", Name , Name0),
       (match_posix_rest(Name0, L , _) ->
-         append(L,[10],Pred),
+          Pred = L,
          extract_tpred_name(Rest, Name, Xs)
      ;
         Pred = [],
@@ -901,6 +902,8 @@ extract_tpred_name([L|Rest],Name,[Pred|Xs]):-
 extract_tpred_name([],_,[[]]).
 
 char_dot(0'.).
+
+closepar(0'}).
 
 % Strip left and right blanks and newlines from a string
 strip_blanks(Str0, Str) :-
@@ -915,6 +918,13 @@ strip_lblanks(Cs, Cs).
 blank(0' ).
 blank(0'\n).
 blank(0'\t).
+
+% Strip close parenthesis from a string
+strip_closepar([], []).
+strip_closepar([C|Cs], Ds) :- closepar(C), !, strip_closepar(Cs, Ds).
+strip_closepar([C|Cs], [C|Ds]) :- strip_closepar(Cs, Ds).
+
+
 % ---------------------------------------------------------------------------
 % none: no output
 
