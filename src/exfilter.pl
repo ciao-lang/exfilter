@@ -86,7 +86,7 @@
 :- use_module(engine(runtime_control), [set_prolog_flag/2]).
 
 % ----- (loaded dynamically in ciaoppcl_common)
-:- use_module(ciaopp(p_unit/p_asr), []).
+:- use_module(library(compiler/p_unit/p_asr), []).
 :- use_module(ciaopp(analyze_driver), []).
 :- use_module(ciaopp(transform_driver), []).
 :- use_module(ciaopp(auto_interface), []). 
